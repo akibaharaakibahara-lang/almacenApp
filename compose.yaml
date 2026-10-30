@@ -1,0 +1,50 @@
+services:
+  flutter-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sistema_almacen_flutter
+    working_dir: /app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      - flutter_pub_cache:/root/.pub-cache
+    command: >
+      flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
+
+  firebase-emulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.firebase
+    container_name: sistema_almacen_firebase
+    working_dir: /app
+    ports:
+      - "4000:4000"
+      - "8081:8080"
+      - "9099:9099"
+    volumes:
+      - .:/app
+      - firebase_emulator_data:/app/.firebase-data
+    command: >
+      sh -c "mkdir -p /app/.firebase-data && firebase emulators:start --project demo-sistema-almacen --only auth,firestore --import=/app/.firebase-data --export-on-exit=/app/.firebase-data"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sistema_almacen_backend
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - FIRESTORE_EMULATOR_HOST=firebase-emulator:8080
+      - FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099
+    depends_on:
+      - firebase-emulator
+
+volumes:
+  flutter_pub_cache:
+  firebase_emulator_data:
